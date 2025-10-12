@@ -38,6 +38,6 @@ jobs:
           pm2 start src/server.js --name greenklok_api
           pm2 save
         env:
-          PORT: 5050
+          PORT: 80
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
