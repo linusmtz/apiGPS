@@ -1,0 +1,43 @@
+name: Deploy API to servidorGPS (Production)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  
+
+jobs:
+  deploy:
+    name: Deploy Express API to prod
+    runs-on: self-hosted
+    environment: prod 
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project (optional)
+        run: |
+          if [ -f package.json ] && grep -q "\"build\"" package.json; then
+            npm run build
+          else
+            echo "No build step detected"
+          fi
+
+      - name: Start or restart API with PM2
+        run: |
+          pm2 delete greenklok_api || true
+          pm2 start src/server.js --name greenklok_api
+          pm2 save
+        env:
+          PORT: 5050
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
