@@ -15,4 +15,7 @@ const userSchema = new mongoose.Schema({
   last_login: { type: Date }
 });
 
-export const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+
+
+export default User;
