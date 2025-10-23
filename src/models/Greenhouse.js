@@ -17,5 +17,5 @@ const greenhouseSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now }
 });
 
-const Greenhouse = mongoose.model("Greenhouse", greenhouseSchema);
+const Greenhouse = mongoose.model("Greenhouse", greenhouseSchema, "greenhouses");
 export default Greenhouse;

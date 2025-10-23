@@ -8,5 +8,5 @@ const activationCodeSchema = new mongoose.Schema({
   activated_at: { type: Date, default: null }
 });
 
-const ActivationCode = mongoose.model("ActivationCode", activationCodeSchema);
+const ActivationCode = mongoose.model("ActivationCode", activationCodeSchema, "activation_codes");
 export default ActivationCode;
