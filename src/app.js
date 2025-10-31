@@ -12,7 +12,7 @@ app.use(express.json());
 
 app.use("/api/users", userRoutes);
 app.use("/api/greenhouses", greenhouseRoutes);
-app.user("/api/sensors", sensorRoutes);
+app.use("/api/sensors", sensorRoutes);
 
 
 export default app;
