@@ -114,3 +114,71 @@ export const getHistory = async (req, res) => {
   }
 };
 
+export const getSensorHistory = async (req, res) => {
+  try {
+    const { greenhouseId } = req.params;
+    const { type = "temperature", range = "1d" } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(greenhouseId)) {
+      return res.status(400).json({ message: "Invalid greenhouseId" });
+    }
+
+    // 🔹 Convertir rango a milisegundos
+    const now = new Date();
+    const since = new Date(now);
+    const rangeMap = {
+      "1h": 1 / 24,
+      "3h": 3 / 24,
+      "6h": 6 / 24,
+      "12h": 12 / 24,
+      "1d": 1,
+      "3d": 3,
+      "7d": 7,
+      "30d": 30,
+    };
+
+    const days = rangeMap[range] || 1;
+    since.setDate(now.getDate() - days);
+
+    // 🔹 Filtro base
+    const filter = {
+      greenhouseId: new mongoose.Types.ObjectId(greenhouseId),
+      timestamp: { $gte: since },
+    };
+
+    // 🔹 Campos específicos
+    const projection = {
+      _id: 0,
+      timestamp: 1,
+      [type]: 1,
+    };
+
+    // 🔹 Consulta MongoDB
+    const data = await SensorData.find(filter, projection)
+      .sort({ timestamp: 1 })
+      .limit(500);
+
+    if (!data.length) {
+      return res.status(404).json({ message: "No data found in range" });
+    }
+
+    // 🔹 Formato uniforme
+    const formatted = data
+      .filter((d) => d[type] !== undefined)
+      .map((d) => ({
+        timestamp: d.timestamp,
+        value: d[type],
+      }));
+
+    res.json({
+      greenhouseId,
+      type,
+      range,
+      count: formatted.length,
+      data: formatted,
+    });
+  } catch (err) {
+    console.error("❌ Error en getSensorHistory:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
