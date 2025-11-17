@@ -41,3 +41,5 @@ jobs:
           PORT: 8080
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER}}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS}}

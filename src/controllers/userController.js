@@ -6,8 +6,9 @@ import { sendOTPEmail } from "../services/emailService.js";
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
 // --------------------------------------------------
-// 1) REGISTER USER
+// REGISTER USER
 // --------------------------------------------------
 export const registerUser = async (req, res) => {
   try {
@@ -40,13 +41,14 @@ export const registerUser = async (req, res) => {
       message: "Usuario registrado",
       user: safeUser
     });
+
   } catch (err) {
     res.status(500).json({ error: "Error del servidor", details: err.message });
   }
 };
 
 // --------------------------------------------------
-// 2) LOGIN USER
+// LOGIN USER
 // --------------------------------------------------
 export const loginUser = async (req, res) => {
   try {
@@ -55,7 +57,7 @@ export const loginUser = async (req, res) => {
     if ((!email && !phone) || !password)
       return res.status(400).json({ error: "Faltan credenciales" });
 
-    let user = email
+    const user = email
       ? await User.findOne({ email })
       : await User.findOne({ phone });
 
@@ -85,14 +87,14 @@ export const loginUser = async (req, res) => {
         role: safeUser.role
       }
     });
+
   } catch (err) {
     res.status(500).json({ error: "Error del servidor", details: err.message });
   }
 };
 
 // --------------------------------------------------
-// 3) FORGOT PASSWORD (Enviar código OTP por email)
-// Protección anti-spam, anti-fuerza-bruta y anti-expiración
+// FORGOT PASSWORD – enviar código OTP
 // --------------------------------------------------
 export const forgotPassword = async (req, res) => {
   try {
@@ -100,43 +102,34 @@ export const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    // Seguridad: no revelar si existe o no
+    // seguridad: siempre responder igual
     if (!user) {
       return res.status(200).json({
         message: "If the email exists, a verification code will be sent."
       });
     }
 
-    const now = Date.now();
-    const expired =
-      !user.password_reset_expires || now > user.password_reset_expires;
+    const code = generateOTP();
 
-    if (!user.password_reset_code || expired) {
-      // Generar un nuevo código
-      user.password_reset_code = generateOTP();
-      user.password_reset_expires = now + 10 * 60 * 1000; // 10 minutos
-      user.password_reset_attempts = 0;
-    } else {
-      // Existe uno vigente → solo renovar expiración
-      user.password_reset_expires = now + 10 * 60 * 1000;
-      user.password_reset_attempts = 0;
-    }
+    user.password_reset_code = code;
+    user.password_reset_expires = new Date(Date.now() + 10 * 60 * 1000);
+    user.password_reset_attempts = 0;
 
     await user.save();
 
-    await sendOTPEmail(email, user.password_reset_code);
+    await sendOTPEmail(email, code);
 
     return res.json({
       message: "If the email exists, a verification code will be sent."
     });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
 // --------------------------------------------------
-// 4) VERIFY RESET CODE
-// Límite de intentos, expiración y limpieza automática
+// VERIFY CODE
 // --------------------------------------------------
 export const verifyResetCode = async (req, res) => {
   try {
@@ -146,12 +139,11 @@ export const verifyResetCode = async (req, res) => {
     if (!user)
       return res.status(400).json({ message: "Invalid code" });
 
-    const now = Date.now();
-
     if (!user.password_reset_code || !user.password_reset_expires)
       return res.status(400).json({ message: "No reset requested" });
 
-    if (now > user.password_reset_expires) {
+    // verificar expiración correctamente
+    if (new Date() > user.password_reset_expires) {
       user.password_reset_code = null;
       user.password_reset_expires = null;
       user.password_reset_attempts = 0;
@@ -173,7 +165,6 @@ export const verifyResetCode = async (req, res) => {
       return res.status(400).json({ message: "Invalid code" });
     }
 
-    // Código correcto
     user.password_reset_attempts = 0;
     await user.save();
 
@@ -185,7 +176,7 @@ export const verifyResetCode = async (req, res) => {
 };
 
 // --------------------------------------------------
-// 5) RESET PASSWORD (Eliminar código y actualizar password)
+// RESET PASSWORD
 // --------------------------------------------------
 export const resetPassword = async (req, res) => {
   try {
@@ -201,7 +192,6 @@ export const resetPassword = async (req, res) => {
     const hashed = await bcrypt.hash(newPassword, 10);
     user.password_hash = hashed;
 
-    // Limpiar el OTP y estado
     user.password_reset_code = null;
     user.password_reset_expires = null;
     user.password_reset_attempts = 0;
