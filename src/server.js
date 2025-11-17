@@ -1,7 +1,7 @@
 
 import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
-import startMqttConsumer from "./mqtt/consumer.js";
+import startMqttConsumer from "./mqtt/sensorDataConsumer.js";
 
 import app from "./app.js";
 

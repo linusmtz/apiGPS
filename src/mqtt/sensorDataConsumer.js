@@ -1,25 +1,32 @@
 import mqtt from "mqtt";
 import mongoose from "mongoose";
 
-const greenhouseId = new mongoose.Types.ObjectId("691b6b683711f95800de6f1a");
+const greenhouseID = "691b6b683711f95800de6f1a";
+const greenhouseObjectId = new mongoose.Types.ObjectId(greenhouseID);
 
 export default function startMqttConsumer() {
   const client = mqtt.connect("mqtt://143.47.110.219:1883");
+  const topicMQTT = `greenhouse/${greenhouseID}/sensorData`;
 
   const sensorCollection = mongoose.connection.collection("sensor_data");
 
   client.on("connect", () => {
     console.log("⚡ MQTT conectado");
-    client.subscribe("greenhouse/test", (err) => {
-      if (!err) console.log("📡 Suscrito al tópico: greenhouse/test");
+
+    client.subscribe(topicMQTT, (err) => {
+      if (!err) {
+        console.log(`📡 Suscrito al tópico: ${topicMQTT}`);
+      } else {
+        console.log("❌ Error al suscribirse:", err.message);
+      }
     });
   });
 
   client.on("message", async (topic, message) => {
-    if (topic !== "greenhouse/test") return;
+    if (topic !== topicMQTT) return;
 
     console.log("\n────────────────────────────────────────");
-    console.log("📥 Mensaje recibido en greenhouse/test");
+    console.log(`📥 Mensaje recibido en ${topic}`);
     console.log("Payload bruto:", message.toString());
 
     let data;
@@ -31,7 +38,6 @@ export default function startMqttConsumer() {
       return;
     }
 
-    // Validación estricta para los campos reales
     const camposOk =
       data.temperatura != null &&
       data.humedad_aire != null &&
@@ -44,14 +50,13 @@ export default function startMqttConsumer() {
       return;
     }
 
-
     const doc = {
-      greenhouseId,
-      temperature: data.temperatura,        
-      humidity_air: data.humedad_aire,      
-      humidity_soil: data.humedad_suelo_raw, 
-      light: data.luz_lux,                 
-      timestamp: data.timestamp             
+      greenhouseId: greenhouseObjectId,
+      temperature: data.temperatura,
+      humidity_air: data.humedad_aire,
+      humidity_soil: data.humedad_suelo_raw,
+      light: data.luz_lux,
+      timestamp: data.timestamp
     };
 
     try {
