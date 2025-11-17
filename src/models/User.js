@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
@@ -12,6 +11,9 @@ const userSchema = new mongoose.Schema({
     notifications: { type: Boolean, default: true },
     theme: { type: String, default: "light" }
   },
+  password_reset_code: { type: String, default: null },
+  password_reset_expires: { type: Date, default: null },
+  password_reset_attempts: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },
   last_login: { type: Date }
 });

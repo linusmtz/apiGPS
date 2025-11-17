@@ -45,3 +45,38 @@ export const startIrrigation = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const getLatestIrrigation = async (req, res) => {
+  try {
+    const { greenhouseId } = req.params;
+
+    // Validar formato del ID
+    if (!mongoose.Types.ObjectId.isValid(greenhouseId)) {
+      return res.status(400).json({ message: "Invalid greenhouseId" });
+    }
+
+    // Buscar el último registro de riego
+    const lastLog = await IrrigationLog
+      .findOne({ greenhouseId })
+      .sort({ started_at: -1 });
+
+    // Si nunca se ha regado
+    if (!lastLog) {
+      return res.json({
+        exists: false,
+        message: "No irrigation logs found for this greenhouse"
+      });
+    }
+
+    // Respuesta normal
+    return res.json({
+      exists: true,
+      greenhouseId,
+      duration: lastLog.duration,
+      started_at: lastLog.started_at
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
