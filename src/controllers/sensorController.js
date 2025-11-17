@@ -114,6 +114,10 @@ export const getHistory = async (req, res) => {
   }
 };
 
+// ------------------------------------------------------
+// 📈 GET /api/sensors/:greenhouseId/history?type=temperature&range=1d
+// Devuelve historial filtrado por tipo y rango
+// ------------------------------------------------------
 export const getSensorHistory = async (req, res) => {
   try {
     const { greenhouseId } = req.params;
@@ -123,9 +127,10 @@ export const getSensorHistory = async (req, res) => {
       return res.status(400).json({ message: "Invalid greenhouseId" });
     }
 
-    // 🔹 Convertir rango a milisegundos
+    // 🔹 Convertir rango a días
     const now = new Date();
     const since = new Date(now);
+
     const rangeMap = {
       "1h": 1 / 24,
       "3h": 3 / 24,
@@ -140,29 +145,27 @@ export const getSensorHistory = async (req, res) => {
     const days = rangeMap[range] || 1;
     since.setDate(now.getDate() - days);
 
-    // 🔹 Filtro base
+    // 🔹 Filtro usando $expr + $toDate para comparar fecha real
     const filter = {
       greenhouseId: new mongoose.Types.ObjectId(greenhouseId),
-      timestamp: { $gte: since },
+      $expr: {
+        $gte: [{ $toDate: "$timestamp" }, since],
+      },
     };
 
-    // 🔹 Campos específicos
     const projection = {
       _id: 0,
       timestamp: 1,
       [type]: 1,
     };
 
-    // 🔹 Consulta MongoDB
     const data = await SensorData.find(filter, projection)
       .sort({ timestamp: 1 })
       .limit(500);
 
-    if (!data.length) {
+    if (!data.length)
       return res.status(404).json({ message: "No data found in range" });
-    }
 
-    // 🔹 Formato uniforme
     const formatted = data
       .filter((d) => d[type] !== undefined)
       .map((d) => ({
