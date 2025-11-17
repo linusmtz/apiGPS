@@ -204,3 +204,65 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select("-password_hash");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(user);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { name, phone },
+      { new: true }
+    ).select("-password_hash");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      message: "Perfil actualizado",
+      user
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const updatePreferences = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notifications } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { "preferences.notifications": notifications },
+      { new: true }
+    ).select("-password_hash");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      message: "Preferencias actualizadas",
+      user
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
