@@ -3,8 +3,9 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: false, unique: true, sparse: true },
-  password_hash: { type: String },
+  email: { type: String, required: true, unique: true },
+  password_hash: { type: String, required: true },
+  phone: { type: String, required: true, unique: true },
   role: { type: String, default: "standard" },
   greenhouses: [{ type: String }],
   preferences: {

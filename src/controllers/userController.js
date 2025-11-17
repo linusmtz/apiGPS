@@ -4,26 +4,40 @@ import User from "../models/User.js";
 
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
-    if (!name || !email || !password)
+    // Campos obligatorios
+    if (!name || !email || !password || !phone)
       return res.status(400).json({ error: "Todos los campos son obligatorios" });
 
-    const existing = await User.findOne({ email });
-    if (existing)
+    // Email único
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail)
       return res.status(409).json({ error: "El correo ya está registrado" });
 
+    // Phone único
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone)
+      return res.status(409).json({ error: "El número de teléfono ya está registrado" });
+
+    // Hash
     const hashed = await bcrypt.hash(password, 10);
 
+    // Crear usuario
     const user = await User.create({
       name,
       email,
+      phone,
       password_hash: hashed,
       role: "standard"
     });
 
     const { password_hash, ...safeUser } = user.toObject();
-    res.status(201).json({ message: "Usuario registrado", user: safeUser });
+
+    res.status(201).json({ 
+      message: "Usuario registrado", 
+      user: safeUser 
+    });
   } catch (err) {
     res.status(500).json({ error: "Error del servidor", details: err.message });
   }
@@ -31,15 +45,30 @@ export const registerUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
+    const { email, phone, password } = req.body;
+
+    // Debe haber email o phone
+    if ((!email && !phone) || !password)
       return res.status(400).json({ error: "Faltan credenciales" });
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+    let user = null;
+
+    // Si viene email → login por email
+    if (email) {
+      user = await User.findOne({ email });
+    }
+
+    // Si no viene email pero sí phone → login por phone
+    if (!user && phone) {
+      user = await User.findOne({ phone });
+    }
+
+    if (!user)
+      return res.status(404).json({ error: "Usuario no encontrado" });
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: "Credenciales inválidas" });
+    if (!valid)
+      return res.status(401).json({ error: "Credenciales inválidas" });
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -56,8 +85,9 @@ export const loginUser = async (req, res) => {
         id: safeUser._id,
         name: safeUser.name,
         email: safeUser.email,
-        role: safeUser.role,
-      },
+        phone: safeUser.phone,
+        role: safeUser.role
+      }
     });
   } catch (err) {
     res.status(500).json({ error: "Error del servidor", details: err.message });
