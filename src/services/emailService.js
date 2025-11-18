@@ -104,3 +104,13 @@ export const sendGeneralAlert = async (email, title, message) => {
     `
   });
 };
+
+export const sendOfflineAlertEmail = async (to, greenhouseId) => {
+  const info = await transporter.sendMail({
+    from: `"GreenKlokIA" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "PAPU - Invernadero sin comunicación",
+    text: `Necesitamos q lo papu actives: El invernadero con ID ${greenhouseId} ha dejado de enviar datos de sensores.`,
+  });
+  console.log("Offline alert email sent:", info.messageId);
+};
