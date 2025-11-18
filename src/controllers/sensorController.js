@@ -52,7 +52,6 @@ export const addSensorData = async (req, res) => {
 export const getLatestData = async (req, res) => {
   try {
     const { greenhouseId } = req.params;
-
     const objectId = new mongoose.Types.ObjectId(greenhouseId);
 
     const latest = await SensorData.findOne({ greenhouseId: objectId })
@@ -82,7 +81,8 @@ export const getSensorType = async (req, res) => {
       .sort({ timestamp: -1 })
       .limit(1);
 
-    if (!latest) return res.status(404).json({ message: "No data found" });
+    if (!latest)
+      return res.status(404).json({ message: "No data found" });
 
     if (latest[type] === undefined) {
       return res.status(400).json({ message: `Invalid sensor type: ${type}` });
@@ -125,7 +125,7 @@ export const getHistory = async (req, res) => {
 
 // ------------------------------------------------------
 // 📈 GET /api/sensors/:greenhouseId/history?type=&range=
-// Devuelve historial filtrado por rango + downsampling
+// Filtra por rango y devuelve máximo 200 puntos
 // ------------------------------------------------------
 export const getSensorHistory = async (req, res) => {
   try {
@@ -136,30 +136,26 @@ export const getSensorHistory = async (req, res) => {
       return res.status(400).json({ message: "Invalid greenhouseId" });
     }
 
-    // Intervalos
-    const now = new Date();
-    const since = new Date(now);
-
-    const rangeMap = {
-      "1h": 1 / 24,
-      "3h": 3 / 24,
-      "6h": 6 / 24,
-      "12h": 12 / 24,
-      "1d": 1,
-      "3d": 3,
-      "7d": 7,
-      "30d": 30,
+    // Rango → horas
+    const hoursMap = {
+      "1h": 1,
+      "3h": 3,
+      "6h": 6,
+      "12h": 12,
+      "1d": 24,
+      "3d": 72,
+      "7d": 168,
+      "30d": 720
     };
 
-    const days = rangeMap[range] || 1;
-    since.setDate(now.getDate() - days);
+    const hours = hoursMap[range] || 24;
 
-    // Filtro
+    // Convertimos timestamp string ISO a comparación válida
+    const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+
     const filter = {
       greenhouseId: new mongoose.Types.ObjectId(greenhouseId),
-      $expr: {
-        $gte: [{ $toDate: "$timestamp" }, since],
-      },
+      timestamp: { $gte: since }, // funciona porque timestamp es string ISO
     };
 
     const projection = {
@@ -168,18 +164,24 @@ export const getSensorHistory = async (req, res) => {
       [type]: 1,
     };
 
-    const data = await SensorData.find(filter, projection)
-      .sort({ timestamp: 1 });
+    const data = await SensorData.find(filter, projection).sort({ timestamp: 1 });
 
-    if (!data.length)
-      return res.status(404).json({ message: "No data found in range" });
+    if (!data.length) {
+      return res.json({
+        greenhouseId,
+        type,
+        range,
+        count: 0,
+        data: [],
+      });
+    }
 
-    // 🎨 Downsample bonito (máx 200 puntos)
+    // Downsample para no saturar la gráfica
     const sampled = downsample(data, 200);
 
     const formatted = sampled
-      .filter((d) => d[type] !== undefined)
-      .map((d) => ({
+      .filter(d => d[type] !== undefined)
+      .map(d => ({
         timestamp: d.timestamp,
         value: d[type],
       }));
@@ -191,8 +193,9 @@ export const getSensorHistory = async (req, res) => {
       count: formatted.length,
       data: formatted,
     });
+
   } catch (err) {
-    console.error("❌ Error:", err);
+    console.error("❌ Error getSensorHistory:", err);
     res.status(500).json({ message: err.message });
   }
 };
