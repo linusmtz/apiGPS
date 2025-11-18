@@ -150,12 +150,12 @@ export const getSensorHistory = async (req, res) => {
 
     const hours = hoursMap[range] || 24;
 
-    // Convertimos timestamp string ISO a comparación válida
+    // Timestamp de corte (EN STRING ISO, COMO TUS DATOS)
     const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
 
     const filter = {
       greenhouseId: new mongoose.Types.ObjectId(greenhouseId),
-      timestamp: { $gte: since }, // funciona porque timestamp es string ISO
+      timestamp: { $gte: since },
     };
 
     const projection = {
@@ -164,9 +164,10 @@ export const getSensorHistory = async (req, res) => {
       [type]: 1,
     };
 
-    const data = await SensorData.find(filter, projection).sort({ timestamp: 1 });
+    const raw = await SensorData.find(filter, projection).sort({ timestamp: 1 });
 
-    if (!data.length) {
+    // si no hay lecturas, regresamos vacío (pero NO error)
+    if (!raw.length) {
       return res.json({
         greenhouseId,
         type,
@@ -176,15 +177,15 @@ export const getSensorHistory = async (req, res) => {
       });
     }
 
-    // Downsample para no saturar la gráfica
-    const sampled = downsample(data, 200);
+    // downsample para gráfico
+    const maxPoints = 200;
+    const step = Math.ceil(raw.length / maxPoints);
+    const sampled = raw.filter((_, i) => i % step === 0);
 
-    const formatted = sampled
-      .filter(d => d[type] !== undefined)
-      .map(d => ({
-        timestamp: d.timestamp,
-        value: d[type],
-      }));
+    const formatted = sampled.map((d) => ({
+      timestamp: d.timestamp,
+      value: d[type],
+    }));
 
     res.json({
       greenhouseId,
@@ -199,3 +200,4 @@ export const getSensorHistory = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
