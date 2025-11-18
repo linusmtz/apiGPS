@@ -2,8 +2,24 @@ import mongoose from "mongoose";
 import SensorData from "../models/SensorData.js";
 
 // ------------------------------------------------------
+// Función para downsamplear los datos (para gráficas bonitas)
+// ------------------------------------------------------
+function downsample(data, maxPoints = 200) {
+  if (data.length <= maxPoints) return data;
+
+  const step = data.length / maxPoints;
+  const sampled = [];
+
+  for (let i = 0; i < maxPoints; i++) {
+    sampled.push(data[Math.floor(i * step)]);
+  }
+
+  return sampled;
+}
+
+// ------------------------------------------------------
 // 📤 POST /api/sensors/:greenhouseId
-// Guarda una nueva lectura de sensores (desde ESP32)
+// Guarda nueva lectura
 // ------------------------------------------------------
 export const addSensorData = async (req, res) => {
   try {
@@ -31,36 +47,31 @@ export const addSensorData = async (req, res) => {
 
 // ------------------------------------------------------
 // 📥 GET /api/sensors/:greenhouseId/latest
-// Devuelve la lectura más reciente del invernadero
+// Devuelve la lectura más reciente
 // ------------------------------------------------------
 export const getLatestData = async (req, res) => {
   try {
     const { greenhouseId } = req.params;
-    console.log("🧠 Recibido greenhouseId:", greenhouseId);
 
     const objectId = new mongoose.Types.ObjectId(greenhouseId);
-    console.log("🔍 Convertido a ObjectId:", objectId);
 
     const latest = await SensorData.findOne({ greenhouseId: objectId })
       .sort({ timestamp: -1 })
       .limit(1);
 
-    console.log("📦 Resultado de consulta:", latest);
-
-    if (!latest) {
+    if (!latest)
       return res.status(404).json({ message: "No data found" });
-    }
 
     res.json(latest);
   } catch (err) {
-    console.error("💥 Error en getLatestData:", err);
+    console.error("Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
 // ------------------------------------------------------
 // 📊 GET /api/sensors/:greenhouseId/:type
-// Devuelve el valor más reciente de un tipo específico
+// Devuelve el último valor de un sensor
 // ------------------------------------------------------
 export const getSensorType = async (req, res) => {
   try {
@@ -73,7 +84,6 @@ export const getSensorType = async (req, res) => {
 
     if (!latest) return res.status(404).json({ message: "No data found" });
 
-    // Si el tipo no existe en el documento
     if (latest[type] === undefined) {
       return res.status(400).json({ message: `Invalid sensor type: ${type}` });
     }
@@ -85,14 +95,14 @@ export const getSensorType = async (req, res) => {
       timestamp: latest.timestamp,
     });
   } catch (err) {
-    console.error("Error fetching sensor type:", err);
+    console.error("Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
 // ------------------------------------------------------
 // 📜 GET /api/sensors/:greenhouseId/history
-// Devuelve las últimas 20 lecturas del invernadero
+// Últimas 20 lecturas
 // ------------------------------------------------------
 export const getHistory = async (req, res) => {
   try {
@@ -103,9 +113,8 @@ export const getHistory = async (req, res) => {
       .sort({ timestamp: -1 })
       .limit(20);
 
-    if (!data.length) {
+    if (!data.length)
       return res.status(404).json({ message: "No history data found" });
-    }
 
     res.json(data);
   } catch (err) {
@@ -115,8 +124,8 @@ export const getHistory = async (req, res) => {
 };
 
 // ------------------------------------------------------
-// 📈 GET /api/sensors/:greenhouseId/history?type=temperature&range=1d
-// Devuelve historial filtrado por tipo y rango
+// 📈 GET /api/sensors/:greenhouseId/history?type=&range=
+// Devuelve historial filtrado por rango + downsampling
 // ------------------------------------------------------
 export const getSensorHistory = async (req, res) => {
   try {
@@ -127,7 +136,7 @@ export const getSensorHistory = async (req, res) => {
       return res.status(400).json({ message: "Invalid greenhouseId" });
     }
 
-    // 🔹 Convertir rango a días
+    // Intervalos
     const now = new Date();
     const since = new Date(now);
 
@@ -145,7 +154,7 @@ export const getSensorHistory = async (req, res) => {
     const days = rangeMap[range] || 1;
     since.setDate(now.getDate() - days);
 
-    // 🔹 Filtro usando $expr + $toDate para comparar fecha real
+    // Filtro
     const filter = {
       greenhouseId: new mongoose.Types.ObjectId(greenhouseId),
       $expr: {
@@ -160,13 +169,15 @@ export const getSensorHistory = async (req, res) => {
     };
 
     const data = await SensorData.find(filter, projection)
-      .sort({ timestamp: 1 })
-      .limit(500);
+      .sort({ timestamp: 1 });
 
     if (!data.length)
       return res.status(404).json({ message: "No data found in range" });
 
-    const formatted = data
+    // 🎨 Downsample bonito (máx 200 puntos)
+    const sampled = downsample(data, 200);
+
+    const formatted = sampled
       .filter((d) => d[type] !== undefined)
       .map((d) => ({
         timestamp: d.timestamp,
@@ -181,7 +192,7 @@ export const getSensorHistory = async (req, res) => {
       data: formatted,
     });
   } catch (err) {
-    console.error("❌ Error en getSensorHistory:", err);
+    console.error("❌ Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
