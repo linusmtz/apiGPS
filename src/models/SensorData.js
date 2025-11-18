@@ -7,8 +7,7 @@ const sensorDataSchema = new mongoose.Schema({
   humidity_air: Number,
   humidity_soil: Number,
   light: Number,
-  ph: Number,
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
 });
 
 export default mongoose.model("SensorData", sensorDataSchema, "sensor_data");

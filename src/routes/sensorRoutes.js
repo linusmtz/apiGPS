@@ -3,7 +3,6 @@ import express from "express";
 import {
   addSensorData,
   getLatestData,
-  getHistory,
   getSensorType,
   getSensorHistory 
 } from "../controllers/sensorController.js";

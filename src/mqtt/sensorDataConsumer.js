@@ -42,8 +42,7 @@ export default function startMqttConsumer() {
       data.temperatura != null &&
       data.humedad_aire != null &&
       data.humedad_suelo_raw != null &&
-      data.luz_lux != null &&
-      data.timestamp;
+      data.luz_lux != null;
 
     if (!camposOk) {
       console.log("⚠ Datos incompletos → NO se guarda");
@@ -56,7 +55,7 @@ export default function startMqttConsumer() {
       humidity_air: data.humedad_aire,
       humidity_soil: data.humedad_suelo_raw,
       light: data.luz_lux,
-      timestamp: data.timestamp
+      timestamp: new Date(),  // ← único cambio REAL
     };
 
     try {
