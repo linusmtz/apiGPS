@@ -9,7 +9,7 @@ dotenv.config();
 
 const PORT = process.env.PORT || 8080;
 
-//startMqttConsumer();
+startMqttConsumer();
 connectDB();
 
 app.listen(PORT, "0.0.0.0", () => {
