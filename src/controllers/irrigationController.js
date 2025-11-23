@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import Greenhouse from "../models/Greenhouse.js";
 import IrrigationLog from "../models/IrrigationLog.js";
 
-const client = mqtt.connect("mqtt://143.47.110.219:1883");
+const client = mqtt.connect("mqtt://150.136.81.124:1883");
 
 export const startIrrigation = async (req, res) => {
   try {

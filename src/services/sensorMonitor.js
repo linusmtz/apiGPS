@@ -2,7 +2,7 @@
 import mqtt from "mqtt";
 import { sendOfflineAlertEmail } from "./emailService.js";
 
-const MQTT_URL = "mqtt://143.47.110.219:1883";
+const MQTT_URL = "mqtt://150.136.81.124:1883";
 const client = mqtt.connect(MQTT_URL);
 
 

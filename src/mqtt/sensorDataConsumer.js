@@ -5,7 +5,7 @@ const greenhouseID = "691b6b683711f95800de6f1a";
 const greenhouseObjectId = new mongoose.Types.ObjectId(greenhouseID);
 
 export default function startMqttConsumer() {
-  const client = mqtt.connect("mqtt://143.47.110.219:1883");
+  const client = mqtt.connect("mqtt://150.136.81.124:1883");
   const topicMQTT = `greenhouse/${greenhouseID}/sensorData`;
 
   const sensorCollection = mongoose.connection.collection("sensor_data");

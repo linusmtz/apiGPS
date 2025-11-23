@@ -2,7 +2,7 @@ import mqtt from "mqtt";
 import mongoose from "mongoose";
 import Greenhouse from "../models/Greenhouse.js";
 
-const client = mqtt.connect("mqtt://143.47.110.219:1883");
+const client = mqtt.connect("mqtt://150.136.81.124:1883");
 
 export const moveServo = async (req, res) => {
   try {
