@@ -2,8 +2,8 @@ import { spawn } from "child_process";
 
 export function runAI(inputData) {
   return new Promise((resolve, reject) => {
-    const py = spawn("python3", ["src/ai_predict.py"], {
-      cwd: process.cwd() // asegura ruta correcta
+    const py = spawn("python3", ["ai_predict.py"], {
+      cwd: path.join(process.cwd(), "src") // asegura ruta correcta
     });
 
     let output = "";
