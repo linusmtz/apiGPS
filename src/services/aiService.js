@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import path from "path";
 
 export function runAI(inputData) {
   return new Promise((resolve, reject) => {
